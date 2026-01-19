@@ -7,7 +7,8 @@ group = 'com.demo'
 
 // Requirement ticket version logic:
 // version = GIT_TAG ?: (project property version ?: "0.0.1-SNAPSHOT")
-version = System.getenv('GIT_TAG') ?: (findProperty('version') ?: '0.0.1-SNAPSHOT')
+def gitTag = System.getenv('GIT_TAG')
+version = (gitTag != null && !gitTag.isEmpty()) ? gitTag : (findProperty('version') ?: '0.0.1-SNAPSHOT')
 
 sourceCompatibility = 17
 targetCompatibility = 17

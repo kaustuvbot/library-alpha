@@ -40,6 +40,7 @@ jobs:
             TAG_VERSION="${TAG_NAME#v}"
             echo "GIT_TAG=$TAG_VERSION" >> $GITHUB_ENV
           fi
+          # Don't set GIT_TAG if it's not a tag - leave it unset
 
       - name: Get CodeArtifact auth token
         run: |
