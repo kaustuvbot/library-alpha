@@ -9,35 +9,29 @@ group = 'com.demo'
 // version = GIT_TAG ?: (project property version ?: "0.0.1-SNAPSHOT")
 version = System.getenv('GIT_TAG') ?: (findProperty('version') ?: '0.0.1-SNAPSHOT')
 
-java {
-  toolchain {
-    languageVersion = JavaLanguageVersion.of(17)
-  }
-  withJavadocJar()
-  withSourcesJar()
-}
+sourceCompatibility = 17
+targetCompatibility = 17
 
-publishing {
-  publications {
-    mavenJava(MavenPublication) {
-      from components.java
-      artifactId = project.name
-    }
-  }
+// Configure publishing ONLY when CodeArtifact vars exist
+if (System.getenv("CODEARTIFACT_REPO_URL") != null) {
 
-  repositories {
-    maven {
-      // Provided by GitHub Actions
-      def repoUrl = System.getenv('CODEARTIFACT_REPO_URL')
-      if (repoUrl == null || repoUrl.trim().isEmpty()) {
-        throw new GradleException('CODEARTIFACT_REPO_URL is required')
+  publishing {
+    publications {
+      mavenJava(MavenPublication) {
+        from components.java
+        artifactId = project.name
       }
-      url = uri(repoUrl)
+    }
 
-      credentials {
-        username = 'aws'
-        password = System.getenv('CODEARTIFACT_AUTH_TOKEN')
+    repositories {
+      maven {
+        url = uri(System.getenv("CODEARTIFACT_REPO_URL"))
+        credentials {
+          username = 'aws'
+          password = System.getenv("CODEARTIFACT_AUTH_TOKEN")
+        }
       }
     }
   }
+
 }
