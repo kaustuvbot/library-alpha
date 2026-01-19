@@ -1,0 +1,66 @@
+name: Publish Library to CodeArtifact (Maven)
+
+on:
+  push:
+    branches: [main]
+    tags:
+      - "v*"
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: "temurin"
+          java-version: "17"
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.CODEARTIFACT_ROLE_ARN }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Compute GIT_TAG version
+        run: |
+          # If this run is triggered by a tag like refs/tags/v1.2.3,
+          # convert it to GIT_TAG=1.2.3
+          REF="${GITHUB_REF}"
+          if [[ "$REF" == refs/tags/* ]]; then
+            TAG_NAME="${REF#refs/tags/}"
+            TAG_VERSION="${TAG_NAME#v}"
+            echo "GIT_TAG=$TAG_VERSION" >> $GITHUB_ENV
+          fi
+
+      - name: Get CodeArtifact auth token
+        run: |
+          TOKEN=$(aws codeartifact get-authorization-token \
+            --domain ${{ secrets.CODEARTIFACT_DOMAIN }} \
+            --domain-owner ${{ secrets.AWS_ACCOUNT_ID }} \
+            --query authorizationToken \
+            --output text)
+          echo "CODEARTIFACT_AUTH_TOKEN=$TOKEN" >> $GITHUB_ENV
+
+      - name: Get CodeArtifact Maven repo endpoint
+        run: |
+          ENDPOINT=$(aws codeartifact get-repository-endpoint \
+            --domain ${{ secrets.CODEARTIFACT_DOMAIN }} \
+            --domain-owner ${{ secrets.AWS_ACCOUNT_ID }} \
+            --repository ${{ secrets.CODEARTIFACT_REPOSITORY }} \
+            --format maven \
+            --query repositoryEndpoint \
+            --output text)
+          echo "CODEARTIFACT_REPO_URL=$ENDPOINT" >> $GITHUB_ENV
+
+      - name: Publish (Gradle)
+        run: |
+          ./gradlew --no-daemon clean publish
