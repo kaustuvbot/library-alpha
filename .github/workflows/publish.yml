@@ -63,4 +63,6 @@ jobs:
 
       - name: Publish (Gradle)
         run: |
+          echo "GIT_TAG value: '$GIT_TAG'"
+          ./gradlew properties --no-daemon | grep "^version:"
           ./gradlew --no-daemon clean publish
